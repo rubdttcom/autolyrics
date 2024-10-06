@@ -47,7 +47,8 @@
     document.addEventListener('DOMContentLoaded', function() {
         if (transcription && transcription.segments) {
             displayLyrics();
-            showInitialSegment();
+            // Eliminamos showInitialSegment() ya que manejaremos la visibilidad en syncLyrics()
+            // showInitialSegment();
             syncLyrics();
         } else {
             console.error('Transcripción no encontrada o formato incorrecto.');
@@ -70,11 +71,14 @@
         });
     }
 
+    // Eliminamos showInitialSegment() ya que manejaremos la visibilidad en syncLyrics()
+    /*
     function showInitialSegment() {
         if (transcription.segments.length > 0) {
             document.getElementById(`segment-0`).classList.remove('hidden');
         }
     }
+    */
 
     function syncLyrics() {
         audioPlayer.addEventListener('timeupdate', function() {
@@ -87,6 +91,14 @@
                 let words = segment.words;
 
                 let segmentShouldBeVisible = false;
+
+                // **Condición Especial para el Primer Segmento**
+                if (i === 0) {
+                    // Si el tiempo actual es menor que el inicio de la primera palabra, mostrar el primer segmento
+                    if (currentTime < words[0].start) {
+                        segmentShouldBeVisible = true;
+                    }
+                }
 
                 // Recorrer todas las palabras del segmento
                 for (let j = 0; j < words.length; j++) {
@@ -115,6 +127,38 @@
                 }
             }
         });
+
+        // Manejar el evento cuando el audio termina
+        audioPlayer.addEventListener('ended', function() {
+            // Opcional: Puedes realizar alguna acción cuando el audio termine
+        });
+    }
+
+    // Obtener el span de la palabra que está "offset" posiciones adelante
+    function getNextWordSpan(currentWordIndex, currentSegmentIndex, offset) {
+        let segment = transcription.segments[currentSegmentIndex];
+        let remainingWordsInCurrentSegment = segment.words.length - currentWordIndex - 1;
+
+        // Si la palabra con el desplazamiento está en el mismo segmento
+        if (offset <= remainingWordsInCurrentSegment) {
+            return document.getElementById(`word-${currentWordIndex + offset}-${currentSegmentIndex}`);
+        }
+        // Ajustar el offset y pasar al siguiente segmento
+        else {
+            offset -= (remainingWordsInCurrentSegment + 1);
+            let nextSegmentIndex = currentSegmentIndex + 1;
+
+            while (nextSegmentIndex < transcription.segments.length) {
+                let nextSegment = transcription.segments[nextSegmentIndex];
+                if (offset < nextSegment.words.length) {
+                    return document.getElementById(`word-${offset}-${nextSegmentIndex}`);
+                }
+                offset -= nextSegment.words.length;
+                nextSegmentIndex++;
+            }
+        }
+        // Si no hay más palabras en los siguientes segmentos
+        return null;
     }
 </script>
 
