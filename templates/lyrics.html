@@ -79,80 +79,42 @@
     function syncLyrics() {
         audioPlayer.addEventListener('timeupdate', function() {
             let currentTime = audioPlayer.currentTime;
+
+            // Recorrer todos los segmentos
             for (let i = 0; i < transcription.segments.length; i++) {
-                let words = transcription.segments[i].words;
+                let segment = transcription.segments[i];
+                let segmentElement = document.getElementById(`segment-${i}`);
+                let words = segment.words;
+
+                let segmentShouldBeVisible = false;
+
+                // Recorrer todas las palabras del segmento
                 for (let j = 0; j < words.length; j++) {
                     let word = words[j];
-                    if (currentTime >= word.start && currentTime <= word.end) {
-                        if (currentWordIndex[0] !== j || currentWordIndex[1] !== i) {
-                            // Mantener resaltadas las palabras anteriores y ocultar los segmentos innecesarios
-                            if (currentWordIndex[0] !== -1 && currentWordIndex[1] !== -1) {
-                                let [prevWordIndex, prevSegmentIndex] = currentWordIndex;
-                                // No quitar el resaltado de las palabras anteriores, pero ocultar sus segmentos
-                                for (let k = 0; k < 3; k++) {
-                                    let nextWordSpan = getNextWordSpan(prevWordIndex, prevSegmentIndex, k);
-                                    if (nextWordSpan) {
-                                        let [_, nextSegmentIndex] = nextWordSpan.id.split('-').slice(2).map(Number);
-                                        let segmentElement = document.getElementById(`segment-${nextSegmentIndex}`);
-                                        if (segmentElement && nextSegmentIndex !== i && nextSegmentIndex !== currentWordIndex[1]) {
-                                            segmentElement.classList.add('hidden');
-                                        }
-                                    }
-                                }
-                            }
+                    let wordElement = document.getElementById(`word-${j}-${i}`);
 
-                            // Añadir el resaltado a la palabra actual y mostrar el segmento actual
-                            document.getElementById(`word-${j}-${i}`).classList.add('highlight');
-                            document.getElementById(`segment-${i}`).classList.remove('hidden');
-
-                            // Añadir el resaltado a las siguientes dos palabras, si existen, y mostrar sus segmentos correspondientes
-                            for (let k = 1; k <= 2; k++) {
-                                let nextWordSpan = getNextWordSpan(j, i, k);
-                                if (nextWordSpan) {
-                                    nextWordSpan.classList.add('highlight');
-                                    let [_, nextSegmentIndex] = nextWordSpan.id.split('-').slice(2).map(Number);
-                                    let segmentElement = document.getElementById(`segment-${nextSegmentIndex}`);
-                                    if (segmentElement) {
-                                        segmentElement.classList.remove('hidden');
-                                    }
-                                }
-                            }
-
-                            // Actualizar el índice de la palabra actual
-                            currentWordIndex = [j, i];
-                        }
-                        return; // Salir del bucle una vez encontrada la palabra actual
+                    if (currentTime >= word.end) {
+                        // La palabra ya ha pasado, resáltala
+                        wordElement.classList.add('highlight');
+                        segmentShouldBeVisible = true;
+                    } else if (currentTime >= word.start && currentTime < word.end) {
+                        // Palabra actual, resáltala
+                        wordElement.classList.add('highlight');
+                        segmentShouldBeVisible = true;
+                    } else {
+                        // Palabra futura, remover resaltado
+                        wordElement.classList.remove('highlight');
                     }
+                }
+
+                // Mostrar u ocultar el segmento según corresponda
+                if (segmentShouldBeVisible) {
+                    segmentElement.classList.remove('hidden');
+                } else {
+                    segmentElement.classList.add('hidden');
                 }
             }
         });
-    }
-
-    // Obtener el span de la palabra que está "offset" posiciones adelante
-    function getNextWordSpan(currentWordIndex, currentSegmentIndex, offset) {
-        let segment = transcription.segments[currentSegmentIndex];
-        let remainingWordsInCurrentSegment = segment.words.length - currentWordIndex - 1;
-
-        // Si la palabra con el desplazamiento está en el mismo segmento
-        if (offset <= remainingWordsInCurrentSegment) {
-            return document.getElementById(`word-${currentWordIndex + offset}-${currentSegmentIndex}`);
-        }
-        // Ajustar el offset y pasar al siguiente segmento
-        else {
-            offset -= remainingWordsInCurrentSegment + 1;
-            let nextSegmentIndex = currentSegmentIndex + 1;
-
-            while (nextSegmentIndex < transcription.segments.length) {
-                let nextSegment = transcription.segments[nextSegmentIndex];
-                if (offset < nextSegment.words.length) {
-                    return document.getElementById(`word-${offset}-${nextSegmentIndex}`);
-                }
-                offset -= nextSegment.words.length;
-                nextSegmentIndex++;
-            }
-        }
-        // Si no hay más palabras en los siguientes segmentos
-        return null;
     }
 </script>
 
