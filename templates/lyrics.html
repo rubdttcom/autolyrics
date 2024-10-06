@@ -18,6 +18,7 @@
         }
         .highlight {
             background-color: yellow;
+            transition: background-color 0.5s ease-in-out;
         }
     </style>
 </head>
@@ -64,19 +65,54 @@
                 for (let j = 0; j < words.length; j++) {
                     let word = words[j];
                     if (currentTime >= word.start && currentTime <= word.end) {
+                        // Resaltar la palabra actual y la siguiente
                         if (currentWordIndex[0] !== j || currentWordIndex[1] !== i) {
+                            // Quitar el resaltado anterior
                             if (currentWordIndex[0] !== -1 && currentWordIndex[1] !== -1) {
                                 let [prevWordIndex, prevSegmentIndex] = currentWordIndex;
                                 document.getElementById(`word-${prevWordIndex}-${prevSegmentIndex}`).classList.remove('highlight');
+                                // También quitar el resaltado de la siguiente palabra previa, si existe
+                                let nextWordSpan = getNextWordSpan(prevWordIndex, prevSegmentIndex);
+                                if (nextWordSpan) {
+                                    nextWordSpan.classList.remove('highlight');
+                                }
                             }
+
+                            // Añadir el resaltado a la palabra actual
                             document.getElementById(`word-${j}-${i}`).classList.add('highlight');
+
+                            // Añadir el resaltado a la siguiente palabra, si existe
+                            let nextWordSpan = getNextWordSpan(j, i);
+                            if (nextWordSpan) {
+                                nextWordSpan.classList.add('highlight');
+                            }
+
+                            // Actualizar el índice de la palabra actual
                             currentWordIndex = [j, i];
                         }
-                        return;  // Salir del bucle una vez encontrada la palabra actual
+                        return; // Salir del bucle una vez encontrada la palabra actual
                     }
                 }
             }
         });
+    }
+
+    // Obtener el span de la siguiente palabra
+    function getNextWordSpan(currentWordIndex, currentSegmentIndex) {
+        let currentSegment = transcription.segments[currentSegmentIndex];
+        // Si la siguiente palabra está en el mismo segmento
+        if (currentWordIndex + 1 < currentSegment.words.length) {
+            return document.getElementById(`word-${currentWordIndex + 1}-${currentSegmentIndex}`);
+        }
+        // Si la siguiente palabra está en el siguiente segmento
+        else if (currentSegmentIndex + 1 < transcription.segments.length) {
+            let nextSegment = transcription.segments[currentSegmentIndex + 1];
+            if (nextSegment.words.length > 0) {
+                return document.getElementById(`word-0-${currentSegmentIndex + 1}`);
+            }
+        }
+        // Si no hay más palabras
+        return null;
     }
 </script>
 

@@ -13,7 +13,7 @@ CORS(app)  # Habilitar CORS para permitir peticiones desde el navegador
 
 # Set up logging to trace issues
 def setup_logging():
-    logging.basicConfig(filename='app.log', level=logging.INFO,  # Cambiar a INFO para reducir la verbosidad
+    logging.basicConfig(filename='logs/app.log', level=logging.INFO,  # Cambiar a INFO para reducir la verbosidad
                         format='%(asctime)s %(levelname)s %(message)s',
                         filemode='w')
     console_handler = logging.StreamHandler()
