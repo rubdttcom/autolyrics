@@ -1,0 +1,7 @@
+# Ignorar todos los archivos en las carpetas ./logs y ./uploads
+logs/*
+uploads/*
+
+# Excepciones para permitir la persistencia de los directorios
+!logs/.gitkeep
+!uploads/.gitkeep

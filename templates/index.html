@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Transcriptor de Audio</title>
+    <style>
+        #drop_zone {
+            width: 300px;
+            height: 200px;
+            border: 2px dashed #bbb;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 200px;
+            color: #bbb;
+            margin: 20px auto;
+            cursor: pointer;
+        }
+        #audio_player {
+            display: none;
+            margin: 20px auto;
+            width: 300px;
+        }
+        #lyrics {
+            margin: 20px auto;
+            width: 300px;
+            text-align: left;
+            font-size: 16px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        .highlight {
+            background-color: yellow;
+        }
+    </style>
+</head>
+<body>
+
+<div id="drop_zone">Arrastra y suelta tu archivo MP3 aquí</div>
+<audio id="audio_player" controls></audio>
+<div id="lyrics"></div>
+
+<script>
+    let dropZone = document.getElementById('drop_zone');
+    let audioPlayer = document.getElementById('audio_player');
+    let lyricsDiv = document.getElementById('lyrics');
+    let transcription = [];
+    let currentIndex = -1;
+
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropZone.style.borderColor = 'green';
+    });
+
+    dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        dropZone.style.borderColor = '#bbb';
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropZone.style.borderColor = '#bbb';
+        let file = e.dataTransfer.files[0];
+        if (file && (file.type === 'audio/mp3' || file.type === 'audio/mpeg')) {
+            let formData = new FormData();
+            formData.append('file', file);
+            fetch('/transcribe', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    if (data.segments) {
+                        transcription = data.segments;
+                        displayLyrics();
+                        let url = URL.createObjectURL(file);
+                        audioPlayer.src = url;
+                        audioPlayer.style.display = 'block';
+                        syncLyrics();
+                    } else {
+                        alert('No se pudieron obtener las transcripciones del archivo.');
+                    }
+                }
+            })
+            .catch(error => alert('Hubo un error al procesar la solicitud: ' + error.message));
+        } else {
+            alert('Por favor, carga un archivo MP3.');
+        }
+    });
+
+    function displayLyrics() {
+        lyricsDiv.innerHTML = '';
+        transcription.forEach((segment, index) => {
+            let span = document.createElement('span');
+            span.id = 'segment-' + index;
+            span.textContent = segment.text.trim() + ' ';
+            lyricsDiv.appendChild(span);
+        });
+    }
+
+    function syncLyrics() {
+        audioPlayer.addEventListener('timeupdate', function() {
+            let currentTime = audioPlayer.currentTime;
+            for (let i = 0; i < transcription.length; i++) {
+                if (currentTime >= transcription[i].start && currentTime <= transcription[i].end) {
+                    if (currentIndex !== i) {
+                        if (currentIndex !== -1) {
+                            document.getElementById('segment-' + currentIndex).classList.remove('highlight');
+                        }
+                        document.getElementById('segment-' + i).classList.add('highlight');
+                        currentIndex = i;
+                    }
+                    break;
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
