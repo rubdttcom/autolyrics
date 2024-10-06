@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lyrics Sincronizados</title>
+    <style>
+        #audio_player {
+            margin: 20px auto;
+            width: 300px;
+        }
+        #lyrics {
+            margin: 20px auto;
+            width: 300px;
+            text-align: left;
+            font-size: 16px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        .highlight {
+            background-color: yellow;
+        }
+    </style>
+</head>
+<body>
+
+<audio id="audio_player" controls>
+    <source src="/uploads/{{ audio_file }}" type="audio/mp3">
+    Tu navegador no soporta el elemento de audio.
+</audio>
+<div id="lyrics"></div>
+
+<script>
+    let audioPlayer = document.getElementById('audio_player');
+    let lyricsDiv = document.getElementById('lyrics');
+    const transcription = {{ transcription | tojson }};
+    let currentWordIndex = [-1, -1];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (transcription && transcription.segments) {
+            displayLyrics();
+            syncLyrics();
+        } else {
+            console.error('Transcripción no encontrada o formato incorrecto.');
+        }
+    });
+
+    function displayLyrics() {
+        lyricsDiv.innerHTML = '';
+        transcription.segments.forEach((segment, segmentIndex) => {
+            segment.words.forEach((word, wordIndex) => {
+                let span = document.createElement('span');
+                span.id = `word-${wordIndex}-${segmentIndex}`;
+                span.textContent = word.word + ' ';
+                lyricsDiv.appendChild(span);
+            });
+        });
+    }
+
+    function syncLyrics() {
+        audioPlayer.addEventListener('timeupdate', function() {
+            let currentTime = audioPlayer.currentTime;
+            for (let i = 0; i < transcription.segments.length; i++) {
+                let words = transcription.segments[i].words;
+                for (let j = 0; j < words.length; j++) {
+                    let word = words[j];
+                    if (currentTime >= word.start && currentTime <= word.end) {
+                        if (currentWordIndex[0] !== j || currentWordIndex[1] !== i) {
+                            if (currentWordIndex[0] !== -1 && currentWordIndex[1] !== -1) {
+                                let [prevWordIndex, prevSegmentIndex] = currentWordIndex;
+                                document.getElementById(`word-${prevWordIndex}-${prevSegmentIndex}`).classList.remove('highlight');
+                            }
+                            document.getElementById(`word-${j}-${i}`).classList.add('highlight');
+                            currentWordIndex = [j, i];
+                        }
+                        return;  // Salir del bucle una vez encontrada la palabra actual
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

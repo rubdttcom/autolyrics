@@ -44,7 +44,7 @@
     let audioPlayer = document.getElementById('audio_player');
     let lyricsDiv = document.getElementById('lyrics');
     let transcription = [];
-    let currentIndex = -1;
+    let currentWordIndex = -1;
 
     dropZone.addEventListener('dragover', function(e) {
         e.preventDefault();
@@ -97,11 +97,13 @@
 
     function displayLyrics() {
         lyricsDiv.innerHTML = '';
-        transcription.forEach((segment, index) => {
-            let span = document.createElement('span');
-            span.id = 'segment-' + index;
-            span.textContent = segment.text.trim() + ' ';
-            lyricsDiv.appendChild(span);
+        transcription.forEach((segment) => {
+            segment.words.forEach((word, wordIndex) => {
+                let span = document.createElement('span');
+                span.id = `word-${wordIndex}-${segment.id}`;
+                span.textContent = word.word + ' ';
+                lyricsDiv.appendChild(span);
+            });
         });
     }
 
@@ -109,15 +111,20 @@
         audioPlayer.addEventListener('timeupdate', function() {
             let currentTime = audioPlayer.currentTime;
             for (let i = 0; i < transcription.length; i++) {
-                if (currentTime >= transcription[i].start && currentTime <= transcription[i].end) {
-                    if (currentIndex !== i) {
-                        if (currentIndex !== -1) {
-                            document.getElementById('segment-' + currentIndex).classList.remove('highlight');
+                let words = transcription[i].words;
+                for (let j = 0; j < words.length; j++) {
+                    let word = words[j];
+                    if (currentTime >= word.start && currentTime <= word.end) {
+                        if (currentWordIndex !== j || currentWordIndex.segment !== i) {
+                            if (currentWordIndex !== -1) {
+                                let [prevWordIndex, prevSegmentIndex] = currentWordIndex;
+                                document.getElementById(`word-${prevWordIndex}-${prevSegmentIndex}`).classList.remove('highlight');
+                            }
+                            document.getElementById(`word-${j}-${i}`).classList.add('highlight');
+                            currentWordIndex = [j, i];
                         }
-                        document.getElementById('segment-' + i).classList.add('highlight');
-                        currentIndex = i;
+                        break;
                     }
-                    break;
                 }
             }
         });

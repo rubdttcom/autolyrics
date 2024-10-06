@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Canciones Transcritas</title>
+    <style>
+        #song_list {
+            margin: 20px auto;
+            width: 300px;
+            text-align: left;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        #song_list li {
+            list-style-type: none;
+            padding: 5px;
+            cursor: pointer;
+        }
+        #song_list li:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="song_list">
+    <ul id="songs"></ul>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/list')
+            .then(response => response.json())
+            .then(data => {
+                const songsList = document.getElementById('songs');
+                data.forEach(song => {
+                    let listItem = document.createElement('li');
+                    listItem.textContent = song;
+                    listItem.addEventListener('click', function() {
+                        const songName = encodeURIComponent(song);
+                        window.location.href = `/lyrics/${songName}`;
+                    });
+                    songsList.appendChild(listItem);
+                });
+            })
+            .catch(error => {
+                console.error('Hubo un error al obtener la lista de canciones:', error);
+            });
+    });
+</script>
+
+</body>
+</html>

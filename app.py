@@ -6,6 +6,7 @@ import traceback
 from flask_cors import CORS
 import time
 import json
+from flask import send_from_directory
 
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para permitir peticiones desde el navegador
@@ -75,6 +76,57 @@ def transcribe():
     else:
         logging.error("Error al cargar el archivo o el modelo no está disponible.")
         return jsonify({'error': 'Error al cargar el archivo o el modelo no está disponible'}), 400
+
+@app.route('/list')
+def list_songs_view():
+    """
+    Renderiza la página de lista de canciones.
+    """
+    logging.info("Renderizando la lista de canciones.")
+    return render_template('list.html')
+
+@app.route('/api/list')
+def list_songs_api():
+    """
+    Listar las canciones transcritas (archivos mp3 que tienen una transcripción JSON asociada).
+    """
+    logging.info("Listando canciones disponibles en la carpeta de uploads.")
+    files = os.listdir('uploads')
+    songs = []
+    for file in files:
+        if file.endswith(".mp3"):
+            json_file = os.path.splitext(file)[0] + ".json"
+            if json_file in files:
+                songs.append(file)
+    return jsonify(songs)
+
+
+@app.route('/lyrics/<song_name>')
+def lyrics(song_name):
+    """
+    Renderiza la página de lyrics con el archivo de audio y su transcripción correspondiente.
+    """
+    audio_file = f"{song_name}"
+    json_file = os.path.splitext(song_name)[0] + ".json"
+    lyrics_filepath = os.path.join('uploads', json_file)
+    
+    if os.path.exists(lyrics_filepath):
+        with open(lyrics_filepath, 'r') as f:
+            transcription = json.load(f)
+        return render_template('lyrics.html', audio_file=audio_file, transcription=transcription)
+    else:
+        return "Transcripción no encontrada", 404
+
+from flask import send_from_directory
+
+# Nueva ruta para servir los archivos MP3 desde la carpeta uploads
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    """
+    Servir archivos desde la carpeta 'uploads'.
+    """
+    return send_from_directory('uploads', filename)
+
 
 if __name__ == '__main__':
     if not os.path.exists('uploads'):
